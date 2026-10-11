@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"image"
 	"math"
+	"time"
 
 	"github.com/disintegration/imaging"
 
@@ -210,11 +211,13 @@ func (g *SpriteGenerator) generateSpriteImage() error {
 		for i := 0; i < g.Info.ChunkCount; i++ {
 			time := float64(i) * stepSize
 			img, err := g.g.SpriteScreenshot(context.TODO(), g.Info.VideoFile.Path, time, g.Config.SpriteSize, isPortrait)
-			if err != nil && g.Info.FrameRate > 0 {
+			if err != nil {
 				// Timestamp seeking can fail on files with sparse or damaged GOPs.
-				// Retry the exact requested position using frame seeking before
-				// failing; never reuse a different timestamp's image.
-				img, err = g.g.SpriteScreenshotAccurate(context.TODO(), g.Info.VideoFile.Path, time, g.Config.SpriteSize, isPortrait)
+				// Retry the exact requested position with a bounded post-input seek;
+				// never reuse a different timestamp's image.
+				fallbackCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+				img, err = g.g.SpriteScreenshotAccurate(fallbackCtx, g.Info.VideoFile.Path, time, g.Config.SpriteSize, isPortrait)
+				cancel()
 			}
 			if err != nil {
 				return err

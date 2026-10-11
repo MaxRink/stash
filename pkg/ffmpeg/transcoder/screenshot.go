@@ -95,6 +95,36 @@ func ScreenshotTime(input string, t float64, options ScreenshotOptions) ffmpeg.A
 
 // ScreenshotFrame uses the select filter to get a single frame from the video.
 // It is very slow and should only be used for files with very small duration in secs / frame count.
+// ScreenshotTimeAccurate seeks after opening the input. It is slower than ScreenshotTime
+// but preserves the requested timestamp for variable-frame-rate and sparse-GOP files.
+func ScreenshotTimeAccurate(input string, t float64, options ScreenshotOptions) ffmpeg.Args {
+	options.setDefaults()
+
+	var args ffmpeg.Args
+	args = args.LogLevel(options.Verbosity)
+	args = args.Overwrite()
+	args = args.Input(input)
+	args = args.Seek(t)
+	args = args.VideoFrames(1)
+
+	if options.Quality > 0 {
+		args = args.FixedQualityScaleVideo(options.Quality)
+	}
+
+	var vf ffmpeg.VideoFilter
+	if options.Width > 0 {
+		vf = vf.ScaleWidth(options.Width)
+		args = args.VideoFilter(vf)
+	} else if options.Height > 0 {
+		vf = vf.ScaleHeight(options.Height)
+		args = args.VideoFilter(vf)
+	}
+
+	args = args.AppendArgs(options.OutputType)
+	args = args.Output(options.OutputPath)
+	return args
+}
+
 func ScreenshotFrame(input string, frame int, options ScreenshotOptions) ffmpeg.Args {
 	options.setDefaults()
 

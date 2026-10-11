@@ -214,8 +214,7 @@ func (g *SpriteGenerator) generateSpriteImage() error {
 				// Timestamp seeking can fail on files with sparse or damaged GOPs.
 				// Retry the exact requested position using frame seeking before
 				// failing; never reuse a different timestamp's image.
-				frame := int(math.Round(time * g.Info.FrameRate))
-				img, err = g.g.SpriteScreenshotSlow(context.TODO(), g.Info.VideoFile.Path, frame, g.Config.SpriteSize)
+				img, err = g.g.SpriteScreenshotAccurate(context.TODO(), g.Info.VideoFile.Path, time, g.Config.SpriteSize, isPortrait)
 			}
 			if err != nil {
 				return err

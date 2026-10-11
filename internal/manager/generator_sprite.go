@@ -210,6 +210,13 @@ func (g *SpriteGenerator) generateSpriteImage() error {
 		for i := 0; i < g.Info.ChunkCount; i++ {
 			time := float64(i) * stepSize
 			img, err := g.g.SpriteScreenshot(context.TODO(), g.Info.VideoFile.Path, time, g.Config.SpriteSize, isPortrait)
+			if err != nil && g.Info.FrameRate > 0 {
+				// Timestamp seeking can fail on files with sparse or damaged GOPs.
+				// Retry the exact requested position using frame seeking before
+				// failing; never reuse a different timestamp's image.
+				frame := int(math.Round(time * g.Info.FrameRate))
+				img, err = g.g.SpriteScreenshotSlow(context.TODO(), g.Info.VideoFile.Path, frame, g.Config.SpriteSize)
+			}
 			if err != nil {
 				return err
 			}

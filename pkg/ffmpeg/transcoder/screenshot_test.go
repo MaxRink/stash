@@ -35,3 +35,11 @@ func TestScreenshotFrameBoundsDecoderAndFilterThreads(t *testing.T) {
 		t.Fatalf("ScreenshotFrame() = %#v, want %#v", []string(got), want)
 	}
 }
+
+func TestScreenshotTimeAccurateSeeksAfterInput(t *testing.T) {
+	args := ScreenshotTimeAccurate("clip.mkv", 12.5, ScreenshotOptions{OutputPath: "-", OutputType: ScreenshotOutputTypeBMP})
+	want := []string{"-v", "error", "-y", "-i", "clip.mkv", "-ss", "12.5", "-frames:v", "1", "-vcodec", "bmp", "-f", "rawvideo", "-"}
+	if !reflect.DeepEqual([]string(args), want) {
+		t.Fatalf("args = %#v, want %#v", []string(args), want)
+	}
+}

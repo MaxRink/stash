@@ -32,6 +32,17 @@ func (a Args) Overwrite() Args {
 	return append(a, "-y")
 }
 
+// Threads limits decoder and encoder worker threads and returns the result.
+// It is deliberately an input-level option for bounded screenshot generation.
+func (a Args) Threads(n int) Args {
+	return append(a, "-threads", fmt.Sprint(n))
+}
+
+// FilterThreads limits filter worker threads and returns the result.
+func (a Args) FilterThreads(n int) Args {
+	return append(a, "-filter_threads", fmt.Sprint(n), "-filter_complex_threads", fmt.Sprint(n))
+}
+
 // Seek adds a seek (-ss) to the given seconds and returns the result.
 func (a Args) Seek(seconds float64) Args {
 	return append(a, "-ss", fmt.Sprint(seconds))

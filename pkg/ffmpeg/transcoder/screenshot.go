@@ -60,6 +60,7 @@ func ScreenshotTime(input string, t float64, options ScreenshotOptions) ffmpeg.A
 	var args ffmpeg.Args
 	args = args.LogLevel(options.Verbosity)
 	args = args.Overwrite()
+	args = args.Threads(1).FilterThreads(1)
 	args = args.Seek(t)
 
 	args = args.Input(input)
@@ -93,6 +94,7 @@ func ScreenshotFrame(input string, frame int, options ScreenshotOptions) ffmpeg.
 	var args ffmpeg.Args
 	args = args.LogLevel(options.Verbosity)
 	args = args.Overwrite()
+	args = args.Threads(1).FilterThreads(1)
 
 	args = args.Input(input)
 	args = args.VideoFrames(1)

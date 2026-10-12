@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"image"
 	"math"
-	"strings"
 	stdtime "time"
 
 	"github.com/disintegration/imaging"
@@ -209,14 +208,18 @@ func (g *SpriteGenerator) generateSpriteImage() error {
 		// generate `ChunkCount` thumbnails
 		stepSize := g.Info.VideoFile.VideoStreamDuration / float64(g.Info.ChunkCount)
 
-		fallbackDeadline := stdtime.Now().Add(2 * stdtime.Minute)
+		var fallbackDeadline stdtime.Time
 		for i := 0; i < g.Info.ChunkCount; i++ {
 			time := float64(i) * stepSize
 			img, err := g.g.SpriteScreenshot(context.TODO(), g.Info.VideoFile.Path, time, g.Config.SpriteSize, isPortrait)
 			if errors.Is(err, generate.ErrNoFFmpegOutput) {
 				// Timestamp seeking can fail on files with sparse or damaged GOPs.
 				// Retry the exact requested position with a bounded post-input seek;
-				// never reuse a different timestamp's image.
+				// never reuse a different timestamp's image. Start the budget only
+				// when the first fallback is actually needed.
+				if fallbackDeadline.IsZero() {
+					fallbackDeadline = stdtime.Now().Add(2 * stdtime.Minute)
+				}
 				fallbackCtx, cancel := context.WithDeadline(context.Background(), fallbackDeadline)
 				img, err = g.g.SpriteScreenshotAccurate(fallbackCtx, g.Info.VideoFile.Path, time, g.Config.SpriteSize, isPortrait)
 				cancel()

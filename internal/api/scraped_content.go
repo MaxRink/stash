@@ -19,7 +19,9 @@ func marshalScrapedScenes(content []scraper.ScrapedContent) ([]*models.ScrapedSc
 
 		switch s := c.(type) {
 		case *models.ScrapedScene:
-			ret = append(ret, s)
+			if s != nil {
+				ret = append(ret, s)
+			}
 		case models.ScrapedScene:
 			ret = append(ret, &s)
 		default:
@@ -42,7 +44,9 @@ func marshalScrapedPerformers(content []scraper.ScrapedContent) ([]*models.Scrap
 
 		switch p := c.(type) {
 		case *models.ScrapedPerformer:
-			ret = append(ret, p)
+			if p != nil {
+				ret = append(ret, p)
+			}
 		case models.ScrapedPerformer:
 			ret = append(ret, &p)
 		default:
@@ -65,7 +69,9 @@ func marshalScrapedGalleries(content []scraper.ScrapedContent) ([]*models.Scrape
 
 		switch g := c.(type) {
 		case *models.ScrapedGallery:
-			ret = append(ret, g)
+			if g != nil {
+				ret = append(ret, g)
+			}
 		case models.ScrapedGallery:
 			ret = append(ret, &g)
 		default:
@@ -86,7 +92,9 @@ func marshalScrapedImages(content []scraper.ScrapedContent) ([]*models.ScrapedIm
 
 		switch g := c.(type) {
 		case *models.ScrapedImage:
-			ret = append(ret, g)
+			if g != nil {
+				ret = append(ret, g)
+			}
 		case models.ScrapedImage:
 			ret = append(ret, &g)
 		default:
@@ -109,7 +117,9 @@ func marshalScrapedMovies(content []scraper.ScrapedContent) ([]*models.ScrapedMo
 
 		switch m := c.(type) {
 		case *models.ScrapedMovie:
-			ret = append(ret, m)
+			if m != nil {
+				ret = append(ret, m)
+			}
 		case models.ScrapedMovie:
 			ret = append(ret, &m)
 		default:
@@ -132,13 +142,17 @@ func marshalScrapedGroups(content []scraper.ScrapedContent) ([]*models.ScrapedGr
 
 		switch m := c.(type) {
 		case *models.ScrapedGroup:
-			ret = append(ret, m)
+			if m != nil {
+				ret = append(ret, m)
+			}
 		case models.ScrapedGroup:
 			ret = append(ret, &m)
 		// it's possible that a scraper returns models.ScrapedMovie
 		case *models.ScrapedMovie:
-			g := m.ScrapedGroup()
-			ret = append(ret, &g)
+			if m != nil {
+				g := m.ScrapedGroup()
+				ret = append(ret, &g)
+			}
 		case models.ScrapedMovie:
 			g := m.ScrapedGroup()
 			ret = append(ret, &g)
@@ -156,6 +170,9 @@ func marshalScrapedPerformer(content scraper.ScrapedContent) (*models.ScrapedPer
 	if err != nil {
 		return nil, err
 	}
+	if len(p) == 0 {
+		return nil, nil
+	}
 
 	return p[0], nil
 }
@@ -165,6 +182,9 @@ func marshalScrapedScene(content scraper.ScrapedContent) (*models.ScrapedScene, 
 	s, err := marshalScrapedScenes([]scraper.ScrapedContent{content})
 	if err != nil {
 		return nil, err
+	}
+	if len(s) == 0 {
+		return nil, nil
 	}
 
 	return s[0], nil
@@ -176,6 +196,9 @@ func marshalScrapedGallery(content scraper.ScrapedContent) (*models.ScrapedGalle
 	if err != nil {
 		return nil, err
 	}
+	if len(g) == 0 {
+		return nil, nil
+	}
 
 	return g[0], nil
 }
@@ -185,6 +208,9 @@ func marshalScrapedImage(content scraper.ScrapedContent) (*models.ScrapedImage, 
 	g, err := marshalScrapedImages([]scraper.ScrapedContent{content})
 	if err != nil {
 		return nil, err
+	}
+	if len(g) == 0 {
+		return nil, nil
 	}
 
 	return g[0], nil
@@ -196,6 +222,9 @@ func marshalScrapedMovie(content scraper.ScrapedContent) (*models.ScrapedMovie, 
 	if err != nil {
 		return nil, err
 	}
+	if len(m) == 0 {
+		return nil, nil
+	}
 
 	return m[0], nil
 }
@@ -205,6 +234,9 @@ func marshalScrapedGroup(content scraper.ScrapedContent) (*models.ScrapedGroup, 
 	m, err := marshalScrapedGroups([]scraper.ScrapedContent{content})
 	if err != nil {
 		return nil, err
+	}
+	if len(m) == 0 {
+		return nil, nil
 	}
 
 	return m[0], nil

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/remeh/sizedwaitgroup"
@@ -247,12 +248,8 @@ func (j *GenerateJob) Execute(ctx context.Context, progress *job.Progress) error
 		progress.SetTotal(int(totals.tasks))
 	}()
 
-	wg := sizedwaitgroup.New(parallelTasks)
-
 	// Start measuring how long the generate has taken. (consider moving this up)
 	start := time.Now()
-	var taskErrorsMu sync.Mutex
-	var taskErrors []error
 	if err = instance.Paths.Generated.EnsureTmpDir(); err != nil {
 		logger.Warnf("could not create temporary directory: %v", err)
 	}
@@ -263,37 +260,18 @@ func (j *GenerateJob) Execute(ctx context.Context, progress *job.Progress) error
 		}
 	}()
 
-	for f := range queue {
-		if job.IsCancelled(ctx) {
-			break
-		}
-
-		wg.Add()
-		// #1879 - need to make a copy of f - otherwise there is a race condition
-		// where f is changed when the goroutine runs
-		localTask := f
-		go progress.ExecuteTask(localTask.GetDescription(), func() {
-			defer wg.Done()
-			localTask.Start(ctx)
-			if err := taskError(localTask); err != nil {
-				taskErrorsMu.Lock()
-				taskErrors = append(taskErrors, err)
-				taskErrorsMu.Unlock()
-			}
+	err = executeGenerateTasks(ctx, parallelTasks, queue, func(task Task) {
+		progress.ExecuteTask(task.GetDescription(), func() {
+			task.Start(ctx)
 			progress.Increment()
 		})
-	}
-
-	wg.Wait()
+	}, func() bool { return job.IsCancelled(ctx) })
 
 	if job.IsCancelled(ctx) {
 		logger.Info("Stopping due to user request")
 		return nil
 	}
 
-	taskErrorsMu.Lock()
-	err = errors.Join(taskErrors...)
-	taskErrorsMu.Unlock()
 	if err != nil {
 		return err
 	}
@@ -301,6 +279,36 @@ func (j *GenerateJob) Execute(ctx context.Context, progress *job.Progress) error
 	elapsed := time.Since(start)
 	logger.Info(fmt.Sprintf("Generate finished (%s)", elapsed))
 	return nil
+}
+
+// executeGenerateTasks runs queued tasks with bounded concurrency and waits
+// for every started task before returning. It is kept separate from Progress
+// so task completion and terminal errors can be tested without a live manager.
+func executeGenerateTasks(ctx context.Context, parallelTasks int, queue <-chan Task, execute func(Task), cancelled func() bool) error {
+	if parallelTasks < 1 {
+		parallelTasks = 1
+	}
+	wg := sizedwaitgroup.New(parallelTasks)
+	var taskErrorsMu sync.Mutex
+	var taskErrors []error
+	for task := range queue {
+		if cancelled != nil && cancelled() {
+			break
+		}
+		wg.Add()
+		localTask := task
+		go func() {
+			defer wg.Done()
+			execute(localTask)
+			if taskErr := taskError(localTask); taskErr != nil {
+				taskErrorsMu.Lock()
+				taskErrors = append(taskErrors, taskErr)
+				taskErrorsMu.Unlock()
+			}
+		}()
+	}
+	wg.Wait()
+	return errors.Join(taskErrors...)
 }
 
 func (j *GenerateJob) queueTasks(ctx context.Context, g *generate.Generator, paths []string, queue chan<- Task) {

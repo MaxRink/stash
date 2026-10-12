@@ -32,6 +32,16 @@ func (a Args) Overwrite() Args {
 	return append(a, "-y")
 }
 
+// Threads limits codec worker threads for bounded, single-frame operations.
+func (a Args) Threads(n int) Args {
+	return append(a, "-threads", fmt.Sprint(n))
+}
+
+// FilterThreads limits libavfilter worker threads for bounded operations.
+func (a Args) FilterThreads(n int) Args {
+	return append(a, "-filter_threads", fmt.Sprint(n), "-filter_complex_threads", fmt.Sprint(n))
+}
+
 // Seek adds a seek (-ss) to the given seconds and returns the result.
 func (a Args) Seek(seconds float64) Args {
 	return append(a, "-ss", fmt.Sprint(seconds))

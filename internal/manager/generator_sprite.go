@@ -209,14 +209,15 @@ func (g *SpriteGenerator) generateSpriteImage() error {
 		// generate `ChunkCount` thumbnails
 		stepSize := g.Info.VideoFile.VideoStreamDuration / float64(g.Info.ChunkCount)
 
+		fallbackDeadline := stdtime.Now().Add(2 * stdtime.Minute)
 		for i := 0; i < g.Info.ChunkCount; i++ {
 			time := float64(i) * stepSize
 			img, err := g.g.SpriteScreenshot(context.TODO(), g.Info.VideoFile.Path, time, g.Config.SpriteSize, isPortrait)
-			if err != nil && strings.Contains(err.Error(), "ffmpeg command produced no output") {
+			if errors.Is(err, generate.ErrNoFFmpegOutput) {
 				// Timestamp seeking can fail on files with sparse or damaged GOPs.
 				// Retry the exact requested position with a bounded post-input seek;
 				// never reuse a different timestamp's image.
-				fallbackCtx, cancel := context.WithTimeout(context.Background(), 2*stdtime.Minute)
+				fallbackCtx, cancel := context.WithDeadline(context.Background(), fallbackDeadline)
 				img, err = g.g.SpriteScreenshotAccurate(fallbackCtx, g.Info.VideoFile.Path, time, g.Config.SpriteSize, isPortrait)
 				cancel()
 			}

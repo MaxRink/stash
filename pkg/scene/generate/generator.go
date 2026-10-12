@@ -13,6 +13,10 @@ import (
 	"github.com/stashapp/stash/pkg/fsutil"
 )
 
+// ErrNoFFmpegOutput indicates ffmpeg exited successfully but produced no bytes.
+// Callers may use this to retry a bounded alternate seek without masking other failures.
+var ErrNoFFmpegOutput = errors.New("ffmpeg command produced no output")
+
 const (
 	mp4Pattern  = "*.mp4"
 	webpPattern = "*.webp"
@@ -177,7 +181,7 @@ func (g Generator) generateOutput(lockCtx *fsutil.LockContext, args []string) ([
 	}
 
 	if stdout.Len() == 0 {
-		return nil, fmt.Errorf("ffmpeg command produced no output: <%s>", strings.Join(args, " "))
+		return nil, fmt.Errorf("%w: <%s>", ErrNoFFmpegOutput, strings.Join(args, " "))
 	}
 
 	return stdout.Bytes(), nil

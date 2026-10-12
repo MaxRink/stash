@@ -96,6 +96,7 @@ func ScreenshotTimeAccurate(input string, t float64, options ScreenshotOptions) 
 	var args ffmpeg.Args
 	args = args.LogLevel(options.Verbosity)
 	args = args.Overwrite()
+	args = args.Threads(1).FilterThreads(1)
 	args = args.Input(input)
 	args = args.Seek(t)
 	args = args.VideoFrames(1)

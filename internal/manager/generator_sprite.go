@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"image"
 	"math"
+	"strings"
 	stdtime "time"
 
 	"github.com/disintegration/imaging"
@@ -211,7 +212,7 @@ func (g *SpriteGenerator) generateSpriteImage() error {
 		for i := 0; i < g.Info.ChunkCount; i++ {
 			time := float64(i) * stepSize
 			img, err := g.g.SpriteScreenshot(context.TODO(), g.Info.VideoFile.Path, time, g.Config.SpriteSize, isPortrait)
-			if err != nil {
+			if err != nil && strings.Contains(err.Error(), "ffmpeg command produced no output") {
 				// Timestamp seeking can fail on files with sparse or damaged GOPs.
 				// Retry the exact requested position with a bounded post-input seek;
 				// never reuse a different timestamp's image.

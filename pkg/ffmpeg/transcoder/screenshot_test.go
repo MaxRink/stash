@@ -15,6 +15,8 @@ func TestScreenshotTimeDefaultUsesFastSeek(t *testing.T) {
 	want := []string{
 		"-v", "error",
 		"-y",
+		"-threads", "1",
+		"-filter_threads", "1", "-filter_complex_threads", "1",
 		"-ss", "12.5",
 		"-i", "input.webm",
 		"-frames:v", "1",
@@ -38,6 +40,8 @@ func TestScreenshotTimeSlowSeek(t *testing.T) {
 	want := []string{
 		"-v", "error",
 		"-y",
+		"-threads", "1",
+		"-filter_threads", "1", "-filter_complex_threads", "1",
 		"-i", "input.webm",
 		"-ss", "12.5",
 		"-frames:v", "1",

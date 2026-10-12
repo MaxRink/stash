@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -24,15 +25,28 @@ func TestScreenshotThreadLimitsPreserveCFRAndVFRFrames(t *testing.T) {
 			t.Fatalf("ffmpeg %v failed: %v\n%s", args, err, output)
 		}
 	}
+	codec := "mpeg4"
+	if output, err := exec.Command(ffmpeg, "-hide_banner", "-encoders").CombinedOutput(); err == nil && strings.Contains(string(output), "libx264") {
+		codec = "libx264"
+	}
+	encode := func(source, duration, output string) {
+		args := []string{"-v", "error", "-f", "lavfi", "-i", source, "-t", duration, "-c:v", codec}
+		if codec == "libx264" {
+			args = append(args, "-preset", "ultrafast", "-crf", "28", "-pix_fmt", "yuv420p")
+		} else {
+			args = append(args, "-q:v", "5")
+		}
+		run(append(args, "-y", output)...)
+	}
 
 	cfr := filepath.Join(dir, "cfr.mp4")
 	vfrA := filepath.Join(dir, "vfr-a.mp4")
 	vfrB := filepath.Join(dir, "vfr-b.mp4")
 	vfrList := filepath.Join(dir, "vfr.txt")
 	vfr := filepath.Join(dir, "vfr.mkv")
-	run("-v", "error", "-f", "lavfi", "-i", "testsrc2=size=160x90:rate=10", "-t", "2", "-c:v", "mpeg4", "-q:v", "5", "-y", cfr)
-	run("-v", "error", "-f", "lavfi", "-i", "testsrc2=size=160x90:rate=5", "-t", "1", "-c:v", "mpeg4", "-q:v", "5", "-y", vfrA)
-	run("-v", "error", "-f", "lavfi", "-i", "testsrc2=size=160x90:rate=20", "-t", "1", "-c:v", "mpeg4", "-q:v", "5", "-y", vfrB)
+	encode("testsrc2=size=160x90:rate=10", "2", cfr)
+	encode("testsrc2=size=160x90:rate=5", "1", vfrA)
+	encode("testsrc2=size=160x90:rate=20", "1", vfrB)
 	if err := os.WriteFile(vfrList, []byte("file '"+vfrA+"'\nfile '"+vfrB+"'\n"), 0600); err != nil {
 		t.Fatal(err)
 	}

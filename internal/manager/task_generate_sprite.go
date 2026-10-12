@@ -13,6 +13,7 @@ type GenerateSpriteTask struct {
 	Scene               models.Scene
 	Overwrite           bool
 	fileNamingAlgorithm models.HashAlgorithm
+	err                 error
 }
 
 func (t *GenerateSpriteTask) GetDescription() string {
@@ -27,6 +28,7 @@ func (t *GenerateSpriteTask) Start(ctx context.Context) {
 	ffprobe := instance.FFProbe
 	videoFile, err := ffprobe.NewVideoFile(t.Scene.Path)
 	if err != nil {
+		t.err = fmt.Errorf("reading video file for %s: %w", t.Scene.Path, err)
 		logger.Errorf("error reading video file: %s", err.Error())
 		return
 	}
@@ -47,16 +49,24 @@ func (t *GenerateSpriteTask) Start(ctx context.Context) {
 	generator, err := NewSpriteGenerator(*videoFile, sceneHash, imagePath, vttPath, cfg)
 
 	if err != nil {
+		t.err = fmt.Errorf("creating sprite generator for %s: %w", t.Scene.Path, err)
 		logger.Errorf("error creating sprite generator: %s", err.Error())
 		return
 	}
 	generator.Overwrite = t.Overwrite
 
 	if err := generator.Generate(); err != nil {
+		t.err = fmt.Errorf("generating sprites for %s: %w", t.Scene.Path, err)
 		logger.Errorf("error generating sprite: %s", err.Error())
 		logErrorOutput(err)
 		return
 	}
+}
+
+// Err reports a terminal generation failure, if one occurred. It is read by
+// GenerateJob after Start has completed; no concurrent mutation remains then.
+func (t *GenerateSpriteTask) Err() error {
+	return t.err
 }
 
 // required returns true if the sprite needs to be generated

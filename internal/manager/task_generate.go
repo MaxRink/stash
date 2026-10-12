@@ -2,6 +2,7 @@ package manager
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -250,6 +251,8 @@ func (j *GenerateJob) Execute(ctx context.Context, progress *job.Progress) error
 
 	// Start measuring how long the generate has taken. (consider moving this up)
 	start := time.Now()
+	var taskErrorsMu sync.Mutex
+	var taskErrors []error
 	if err = instance.Paths.Generated.EnsureTmpDir(); err != nil {
 		logger.Warnf("could not create temporary directory: %v", err)
 	}
@@ -270,8 +273,13 @@ func (j *GenerateJob) Execute(ctx context.Context, progress *job.Progress) error
 		// where f is changed when the goroutine runs
 		localTask := f
 		go progress.ExecuteTask(localTask.GetDescription(), func() {
+			defer wg.Done()
 			localTask.Start(ctx)
-			wg.Done()
+			if err := taskError(localTask); err != nil {
+				taskErrorsMu.Lock()
+				taskErrors = append(taskErrors, err)
+				taskErrorsMu.Unlock()
+			}
 			progress.Increment()
 		})
 	}
@@ -281,6 +289,13 @@ func (j *GenerateJob) Execute(ctx context.Context, progress *job.Progress) error
 	if job.IsCancelled(ctx) {
 		logger.Info("Stopping due to user request")
 		return nil
+	}
+
+	taskErrorsMu.Lock()
+	err = errors.Join(taskErrors...)
+	taskErrorsMu.Unlock()
+	if err != nil {
+		return err
 	}
 
 	elapsed := time.Since(start)

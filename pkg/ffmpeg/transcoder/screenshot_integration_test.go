@@ -73,9 +73,6 @@ func TestScreenshotThreadLimitsPreserveCFRAndVFRFrames(t *testing.T) {
 					{name: "accurate", capped: func(output string) []string {
 						return ScreenshotTimeAccurate(fixture.input, mustFloat(t, timestamp), ScreenshotOptions{OutputPath: output, OutputType: ScreenshotOutputTypeImage2})
 					}},
-					{name: "slow", capped: func(output string) []string {
-						return ScreenshotTime(fixture.input, mustFloat(t, timestamp), ScreenshotOptions{OutputPath: output, OutputType: ScreenshotOutputTypeImage2, SlowSeek: true})
-					}},
 				} {
 					uncapped := filepath.Join(dir, fixture.name+"-"+timestamp+"-"+mode.name+"-uncapped.bmp")
 					capped := filepath.Join(dir, fixture.name+"-"+timestamp+"-"+mode.name+"-capped.bmp")

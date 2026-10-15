@@ -20,9 +20,10 @@ import (
 )
 
 const (
-	screenshotSize = 160
-	columns        = 5
-	rows           = 5
+	screenshotSize  = 160
+	columns         = 5
+	rows            = 5
+	minSpriteImages = columns
 )
 
 func Generate(encoder *ffmpeg.FFMpeg, videoFile *models.VideoFile) (*uint64, error) {
@@ -91,15 +92,16 @@ func generateSprite(encoder *ffmpeg.FFMpeg, videoFile *models.VideoFile) (image.
 
 		img, err := generateSpriteScreenshot(encoder, videoFile.Path, time)
 		if err != nil {
-			return nil, fmt.Errorf("generating sprite screenshot: %w", err)
+			logger.Warnf("[generator] skipping phash frame %d/%d: %v", i+1, chunkCount, err)
+			continue
 		}
 
 		images = append(images, img)
 	}
 
 	// Combine all of the thumbnails into a sprite image
-	if len(images) == 0 {
-		return nil, fmt.Errorf("images slice is empty, failed to generate phash sprite for %s", videoFile.Path)
+	if len(images) < minSpriteImages {
+		return nil, fmt.Errorf("only %d/%d screenshots decoded, need at least %d for phash", len(images), chunkCount, minSpriteImages)
 	}
 
 	return combineImages(images), nil

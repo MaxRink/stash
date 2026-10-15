@@ -81,34 +81,33 @@ func combineImages(images []image.Image) image.Image {
 
 func generateSprite(encoder *ffmpeg.FFMpeg, videoFile *models.VideoFile) (image.Image, error) {
 	logger.Infof("[generator] generating phash sprite for %s", videoFile.Path)
+	return generateSpriteWithScreenshot(videoFile.Path, videoFile.Duration, func(t float64, slowSeek bool) (image.Image, error) {
+		return generateSpriteScreenshot(encoder, videoFile.Path, t, slowSeek)
+	})
+}
 
-	// Generate sprite image offset by 5% on each end to avoid intro/outros
+// generateSpriteWithScreenshot builds the canonical sprite; a frame that fails
+// with fast seek is retried once with accurate seek, which then stays on for the
+// remaining frames (upstream #6922). Any frame that still fails fails the sprite.
+func generateSpriteWithScreenshot(path string, duration float64, screenshot func(float64, bool) (image.Image, error)) (image.Image, error) {
+	// Generate sprite image offset by 5% on each end to avoid intro/outros.
 	chunkCount := columns * rows
-	offset := 0.05 * videoFile.Duration
-	stepSize := (0.9 * videoFile.Duration) / float64(chunkCount)
-	var images []image.Image
+	offset := 0.05 * duration
+	stepSize := (0.9 * duration) / float64(chunkCount)
+	images := make([]image.Image, 0, chunkCount)
 	slowSeek := false
-
 	for i := 0; i < chunkCount; i++ {
 		time := offset + (float64(i) * stepSize)
-
-		img, err := generateSpriteScreenshot(encoder, videoFile.Path, time, slowSeek)
+		img, err := screenshot(time, slowSeek)
 		if err != nil && !slowSeek {
-			logger.Warnf("[generator] fast phash screenshot seek failed for %s at %.3fs, retrying with accurate seek for remaining phash screenshots: %v", videoFile.Path, time, err)
-
+			logger.Warnf("[generator] fast phash screenshot seek failed for %s at %.3fs, retrying with accurate seek for remaining phash screenshots: %v", path, time, err)
 			slowSeek = true
-			img, err = generateSpriteScreenshot(encoder, videoFile.Path, time, slowSeek)
+			img, err = screenshot(time, slowSeek)
 		}
 		if err != nil {
-			return nil, fmt.Errorf("generating sprite screenshot: %w", err)
+			return nil, fmt.Errorf("generating sprite screenshot %d/%d: %w", i+1, chunkCount, err)
 		}
-
 		images = append(images, img)
-	}
-
-	// Combine all of the thumbnails into a sprite image
-	if len(images) == 0 {
-		return nil, fmt.Errorf("images slice is empty, failed to generate phash sprite for %s", videoFile.Path)
 	}
 
 	return combineImages(images), nil

@@ -23,7 +23,7 @@ const (
 	screenshotSize  = 160
 	columns         = 5
 	rows            = 5
-	minSpriteImages = columns
+	minSpriteImages = 3
 )
 
 func Generate(encoder *ffmpeg.FFMpeg, videoFile *models.VideoFile) (*uint64, error) {

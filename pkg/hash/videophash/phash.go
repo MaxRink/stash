@@ -10,7 +10,7 @@ import (
 
 	"github.com/corona10/goimagehash"
 	"github.com/disintegration/imaging"
-	"golang.org/x/image/bmp"
+	_ "golang.org/x/image/bmp"
 
 	"github.com/stashapp/stash/pkg/ffmpeg"
 	"github.com/stashapp/stash/pkg/ffmpeg/transcoder"
@@ -42,7 +42,7 @@ func generateSpriteScreenshot(encoder *ffmpeg.FFMpeg, input string, t float64) (
 	options := transcoder.ScreenshotOptions{
 		Width:      screenshotSize,
 		OutputPath: "-",
-		OutputType: transcoder.ScreenshotOutputTypeBMP,
+		OutputType: transcoder.ScreenshotOutputTypePNG,
 	}
 
 	args := transcoder.ScreenshotTime(input, t, options)
@@ -53,7 +53,7 @@ func generateSpriteScreenshot(encoder *ffmpeg.FFMpeg, input string, t float64) (
 
 	reader := bytes.NewReader(data)
 
-	img, err := bmp.Decode(reader)
+	img, _, err := image.Decode(reader)
 	if err != nil {
 		return nil, fmt.Errorf("decoding image: %w", err)
 	}

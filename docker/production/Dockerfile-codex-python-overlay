@@ -1,0 +1,17 @@
+# Build the fork's compatible Stash binary while preserving the validated
+# generation/Python runtime image and all of its installed plugin dependencies.
+FROM golang:1.25.9-alpine AS build
+RUN apk add --no-cache make alpine-sdk
+WORKDIR /stash
+COPY go* ./*.go Makefile gqlgen.yml .gqlgenc.yml /stash/
+COPY graphql /stash/graphql/
+COPY scripts /stash/scripts/
+COPY pkg /stash/pkg/
+COPY cmd /stash/cmd/
+COPY internal /stash/internal/
+COPY ui /stash/ui/
+RUN make generate-backend generate-login-locale
+RUN make flags-release flags-pie stash
+
+FROM maxrink/stash:v0.31.1-generation-450ffd767-python-deps-v9
+COPY --from=build /stash/stash /usr/bin/stash

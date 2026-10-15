@@ -50,7 +50,7 @@ var (
 	}
 	ScreenshotOutputTypeBMP = ScreenshotOutputType{
 		codec:  &ffmpeg.VideoCodecBMP,
-		format: ffmpeg.FormatImage2Pipe,
+		format: "image2pipe",
 	}
 )
 

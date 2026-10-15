@@ -80,26 +80,24 @@ func combineImages(images []image.Image) image.Image {
 
 func generateSprite(encoder *ffmpeg.FFMpeg, videoFile *models.VideoFile) (image.Image, error) {
 	logger.Infof("[generator] generating phash sprite for %s", videoFile.Path)
+	return generateSpriteWithScreenshot(videoFile.Duration, func(t float64) (image.Image, error) {
+		return generateSpriteScreenshot(encoder, videoFile.Path, t)
+	})
+}
 
-	// Generate sprite image offset by 5% on each end to avoid intro/outros
+func generateSpriteWithScreenshot(duration float64, screenshot func(float64) (image.Image, error)) (image.Image, error) {
+	// Generate sprite image offset by 5% on each end to avoid intro/outros.
 	chunkCount := columns * rows
-	offset := 0.05 * videoFile.Duration
-	stepSize := (0.9 * videoFile.Duration) / float64(chunkCount)
-	var images []image.Image
+	offset := 0.05 * duration
+	stepSize := (0.9 * duration) / float64(chunkCount)
+	images := make([]image.Image, 0, chunkCount)
 	for i := 0; i < chunkCount; i++ {
 		time := offset + (float64(i) * stepSize)
-
-		img, err := generateSpriteScreenshot(encoder, videoFile.Path, time)
+		img, err := screenshot(time)
 		if err != nil {
-			return nil, fmt.Errorf("generating sprite screenshot: %w", err)
+			return nil, fmt.Errorf("generating sprite screenshot %d/%d: %w", i+1, chunkCount, err)
 		}
-
 		images = append(images, img)
-	}
-
-	// Combine all of the thumbnails into a sprite image
-	if len(images) == 0 {
-		return nil, fmt.Errorf("images slice is empty, failed to generate phash sprite for %s", videoFile.Path)
 	}
 
 	return combineImages(images), nil

@@ -54,7 +54,7 @@ func generateSpriteScreenshot(encoder *ffmpeg.FFMpeg, input string, t float64) (
 
 	reader := bytes.NewReader(data)
 
-	img, _, err := image.Decode(reader)
+	img, err := png.Decode(reader)
 	if err != nil {
 		return nil, fmt.Errorf("decoding image: %w", err)
 	}

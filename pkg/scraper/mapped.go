@@ -184,7 +184,11 @@ func (s mappedScraper) scrapeScene(ctx context.Context, q mappedQuery) (*models.
 	logger.Debug(`Processing scene:`)
 	results := sceneMap.process(ctx, q, s.Common, urlsIsMulti)
 
-	var ret *models.ScrapedScene
+	// Relationship mappings may still produce a useful result when the
+	// scraper's primary scene mapping is empty. Keep a concrete receiver for
+	// that path; otherwise processSceneRelationships dereferences nil and
+	// crashes the whole scrape request.
+	ret := &models.ScrapedScene{}
 	if len(results) > 0 {
 		ret = results[0].scrapedScene()
 	}

@@ -47,6 +47,23 @@ func (g Generator) SpriteScreenshot(ctx context.Context, input string, seconds f
 	return img, nil
 }
 
+func (g Generator) SpriteScreenshotAccurate(ctx context.Context, input string, seconds float64, size int, isPortrait bool) (image.Image, error) {
+	lockCtx := g.LockManager.ReadLock(ctx, input)
+	defer lockCtx.Cancel()
+
+	ssOptions := transcoder.ScreenshotOptions{
+		OutputPath: "-",
+		OutputType: transcoder.ScreenshotOutputTypeBMP,
+	}
+	if !isPortrait {
+		ssOptions.Width = size
+	} else {
+		ssOptions.Height = size
+	}
+	args := transcoder.ScreenshotTimeAccurate(input, seconds, ssOptions)
+	return g.generateImage(lockCtx, args)
+}
+
 func (g Generator) SpriteScreenshotSlow(ctx context.Context, input string, frame int, width int) (image.Image, error) {
 	lockCtx := g.LockManager.ReadLock(ctx, input)
 	defer lockCtx.Cancel()

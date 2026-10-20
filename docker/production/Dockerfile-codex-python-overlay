@@ -1,6 +1,15 @@
 # Build the fork's compatible Stash binary while preserving the validated
 # generation/Python runtime image and all of its installed plugin dependencies.
-FROM golang:1.25.9-alpine AS build
+FROM node:24-alpine AS ui
+RUN corepack enable && corepack prepare pnpm@10.30.3 --activate
+WORKDIR /stash/ui/v2.5
+COPY ui/v2.5/package.json ui/v2.5/pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
+COPY ui/v2.5/ ./
+COPY graphql/ /stash/graphql/
+RUN pnpm run gqlgen && pnpm run build
+
+FROM golang:1.26.10-alpine AS build
 RUN apk add --no-cache make alpine-sdk
 WORKDIR /stash
 COPY go* ./*.go Makefile gqlgen.yml .gqlgenc.yml /stash/
@@ -10,6 +19,8 @@ COPY pkg /stash/pkg/
 COPY cmd /stash/cmd/
 COPY internal /stash/internal/
 COPY ui /stash/ui/
+COPY --from=ui /stash/ui/v2.5/build /stash/ui/v2.5/build
+RUN test -s /stash/ui/v2.5/build/index.html
 RUN make generate-backend generate-login-locale
 RUN make flags-release flags-pie stash
 

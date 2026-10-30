@@ -108,7 +108,7 @@ func (r *queryResolver) ScrapeGroupURL(ctx context.Context, url string) (*models
 	}
 
 	ret, err := marshalScrapedGroup(content)
-	if err != nil {
+	if err != nil || ret == nil {
 		return nil, err
 	}
 

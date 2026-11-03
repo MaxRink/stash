@@ -1,6 +1,6 @@
 # Build the fork's compatible Stash binary while preserving the validated
 # generation/Python runtime image and all of its installed plugin dependencies.
-ARG RUNTIME_BASE=maxrink/stash:v0.31.1-generation-450ffd767-python-deps-v9
+ARG RUNTIME_BASE=maxrink/stash:v0.31.1-ui-2643130-runtime
 FROM node:24-alpine AS ui
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 WORKDIR /stash/ui/v2.5

@@ -1,7 +1,8 @@
 # Build the fork's compatible Stash binary while preserving the validated
 # generation/Python runtime image and all of its installed plugin dependencies.
+ARG RUNTIME_BASE=maxrink/stash:v0.31.1-generation-450ffd767-python-deps-v9
 FROM node:24-alpine AS ui
-RUN corepack enable && corepack prepare pnpm@10.30.3 --activate
+RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 WORKDIR /stash/ui/v2.5
 COPY ui/v2.5/package.json ui/v2.5/pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
@@ -22,7 +23,13 @@ COPY ui /stash/ui/
 COPY --from=ui /stash/ui/v2.5/build /stash/ui/v2.5/build
 RUN test -s /stash/ui/v2.5/build/index.html
 RUN make generate-backend generate-login-locale
+# No .git in the build context: pass the version and source hash explicitly.
+ARG STASH_VERSION GITHASH
+ENV STASH_VERSION=${STASH_VERSION} GITHASH=${GITHASH}
+RUN test -n "$STASH_VERSION" && test -n "$GITHASH"
 RUN make flags-release flags-pie stash
 
-FROM maxrink/stash:v0.31.1-generation-450ffd767-python-deps-v9
+# Runtime base: the validated generation/Python image (FFmpeg, plugin deps);
+# only the Stash binary is replaced.
+FROM ${RUNTIME_BASE}
 COPY --from=build /stash/stash /usr/bin/stash

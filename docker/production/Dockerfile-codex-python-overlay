@@ -4,7 +4,7 @@ ARG RUNTIME_BASE=maxrink/stash:v0.31.1-ui-2643130-runtime
 FROM node:24-alpine AS ui
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 WORKDIR /stash/ui/v2.5
-COPY ui/v2.5/package.json ui/v2.5/pnpm-lock.yaml ./
+COPY ui/v2.5/package.json ui/v2.5/pnpm-lock.yaml ui/v2.5/pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY ui/v2.5/ ./
 COPY graphql/ /stash/graphql/
